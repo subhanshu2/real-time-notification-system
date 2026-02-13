@@ -4,6 +4,7 @@ import authRoutes from "./routes/auth.routes.js";
 import { errorMiddleware } from "./middlewares/error.middleware.js";
 import swaggerUi from "swagger-ui-express";
 import { generateOpenAPIDocument } from "./config/openapi.js";
+import notificationRoutes from "./routes/notification.routes.js";
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.get("/health", (_, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 
 const document = generateOpenAPIDocument();
