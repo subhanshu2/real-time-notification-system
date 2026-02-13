@@ -2,6 +2,7 @@ import { Router } from "express";
 import { register, login } from "../controllers/auth.controller.js";
 import { registry } from "../config/openapi.js";
 import { registerSchema, loginSchema } from "../validators/auth.validator.js";
+import { authMiddleware } from "../middlewares/auth.middlewares.js";
 
 const router = Router();
 
@@ -50,5 +51,26 @@ registry.registerPath({
   },
 });
 router.post("/login", login);
+
+registry.registerPath({
+  method: "get",
+  path: "/api/auth/me",
+  tags: ["Auth"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: "Get current user",
+    },
+    401: {
+      description: "Unauthorized",
+    },
+  },
+});
+router.get("/me", authMiddleware, (req, res) => {
+  res.json({
+    success: true,
+    user: req.user,
+  });
+});
 
 export default router;
