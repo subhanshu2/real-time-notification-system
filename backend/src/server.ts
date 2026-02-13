@@ -1,19 +1,19 @@
 import "dotenv/config";
 import http from "http";
 import { Server } from "socket.io";
-import app from "./app.js"
+import app from "./app.js";
+import { initializeSocket } from "./config/socket.js";
+
 
 const server = http.createServer(app);
 
-const io = new Server(server, {
+export const io = new Server(server, {
   cors: {
     origin: "*",
   },
 });
 
-io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
-});
+initializeSocket(io);
 
 const PORT = process.env.PORT;
 

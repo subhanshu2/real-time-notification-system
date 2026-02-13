@@ -1,5 +1,6 @@
 import { prisma } from "../config/prisma.js";
 import { AppError } from "../utils/appError.js";
+import { io } from "../server.js";
 
 export const createNotification = async (
   message: string,
@@ -7,12 +8,17 @@ export const createNotification = async (
   userId?: string
 ) => {
   if (userId) {
-    return prisma.notification.create({
+    if (userId === senderId) {
+      throw new AppError("Cannot send notification to yourself", 400);
+    }
+    const notification = await prisma.notification.create({
       data: {
         message,
         userId,
       },
     });
+    io.to(userId).emit("notification", notification);
+    return notification;
   }
 
   const users = await prisma.user.findMany({
@@ -29,6 +35,12 @@ export const createNotification = async (
       message,
       userId: user.id,
     })),
+  });
+
+  users.forEach((user) => {
+    io.to(user.id).emit("notification", {
+      message,
+    });
   });
 
   return { broadcastedTo: users.length };
