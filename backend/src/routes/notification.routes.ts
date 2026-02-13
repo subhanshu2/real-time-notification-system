@@ -10,6 +10,7 @@ import { Role } from "../generated/prisma/client.js";
 import { authMiddleware } from "../middlewares/auth.middlewares.js";
 import { registry } from "../config/openapi.js";
 import { createNotificationSchema, IdParamSchema, PaginationSchema } from "../validators/notification.validator.js";
+import { notificationRateLimiter } from "../utils/rateLimiter.js";
 
 
 const router = Router();
@@ -39,6 +40,7 @@ registry.registerPath({
 });
 router.post(
   "/",
+  notificationRateLimiter,
   authMiddleware,
   requireRole(Role.ADMIN),
   create

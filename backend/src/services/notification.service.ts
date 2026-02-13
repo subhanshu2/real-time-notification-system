@@ -2,6 +2,24 @@ import { prisma } from "../config/prisma.js";
 import { AppError } from "../utils/appError.js";
 import { io } from "../server.js";
 
+
+const emitWithRetry = (
+  userId: string,
+  payload: any,
+  retries = 3
+) => {
+  io.to(userId)
+    .timeout(5000)
+    .emit("notification", payload, (err: any) => {
+      if (err && retries > 0) {
+        console.log(`Retrying for ${userId}...`);
+        setTimeout(() => {
+          emitWithRetry(userId, payload, retries - 1);
+        }, 2000);
+      }
+    });
+};
+
 export const createNotification = async (
   message: string,
   senderId: string,
@@ -17,7 +35,8 @@ export const createNotification = async (
         userId,
       },
     });
-    io.to(userId).emit("notification", notification);
+    emitWithRetry(userId, { message });
+
     return notification;
   }
 
@@ -38,9 +57,12 @@ export const createNotification = async (
   });
 
   users.forEach((user) => {
-    io.to(user.id).emit("notification", {
-      message,
-    });
+    const room = io.sockets.adapter.rooms.get(user.id);
+
+    // Retry only if user is connected
+    if (room && room.size > 0) {
+      emitWithRetry(user.id, { message });
+    }
   });
 
   return { broadcastedTo: users.length };
