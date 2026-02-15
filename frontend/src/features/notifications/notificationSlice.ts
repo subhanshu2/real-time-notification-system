@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import apiClient from "../../services/apiClient";
+import toast from "react-hot-toast";
 
-interface Notification {
+export interface Notification {
   id: string;
   message: string;
   isRead: boolean;
@@ -13,6 +14,7 @@ interface NotificationState {
   unreadCount: number;
   page: number;
   hasMore: boolean;
+  loading: boolean;
 }
 
 const initialState: NotificationState = {
@@ -20,7 +22,17 @@ const initialState: NotificationState = {
   unreadCount: 0,
   page: 1,
   hasMore: true,
+  loading: false,
 };
+
+export interface CreateNotificationRequest {
+   message: string,
+   userId?: string,
+}
+export interface CreateNotifationResponse {
+  data: { broadcastedTo: number }
+  success: boolean
+}
 
 export const fetchNotifications = createAsyncThunk(
   "notifications/fetch",
@@ -48,6 +60,23 @@ export const deleteNotification = createAsyncThunk(
   }
 );
 
+export const createNotification = createAsyncThunk<CreateNotifationResponse, CreateNotificationRequest, { rejectValue: string }>(
+  "notifications/create",
+  async (data, { rejectWithValue }) => {
+    try {
+    const res = await apiClient.post("/notifications", data);
+    if (!res.data.success) {
+      return rejectWithValue(res.data.message);
+    }
+    return res.data;
+    } catch(e: any) {
+      return rejectWithValue(
+        e.response?.data?.message || "Something went wrong"
+      );
+    }
+  }
+);
+
 const notificationSlice = createSlice({
   name: "notifications",
   initialState,
@@ -64,7 +93,12 @@ const notificationSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    builder.addCase(fetchNotifications.pending, (state) => {
+      state.loading = true;
+    });
+
     builder.addCase(fetchNotifications.fulfilled, (state, action) => {
+      state.loading = false;
       if (action.meta.arg === 1) {
         state.items = action.payload.notifications;
       } else {
@@ -76,6 +110,14 @@ const notificationSlice = createSlice({
       state.page = action.meta.arg + 1;
     });
 
+    builder.addCase(createNotification.rejected, (state, action) => {
+      if (action.payload) {
+        toast.error(action.payload);
+      } else {
+        toast.error("Failed to create notification");
+      }
+    });
+
     builder.addCase(markAsRead.fulfilled, (state, action) => {
       const notif = state.items.find(n => n.id === action.payload);
       if (notif && !notif.isRead) {
@@ -85,6 +127,12 @@ const notificationSlice = createSlice({
     });
 
     builder.addCase(deleteNotification.fulfilled, (state, action) => {
+      const notif = state.items.find(n => n.id === action.payload);
+
+      if (notif && !notif.isRead && state.unreadCount > 0) {
+        state.unreadCount -= 1;
+      }
+
       state.items = state.items.filter(n => n.id !== action.payload);
     });
   },

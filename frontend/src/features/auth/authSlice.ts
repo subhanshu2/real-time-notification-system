@@ -1,9 +1,20 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import apiClient from "../../services/apiClient";
 
+export interface User {
+  id: string;
+  email: string;
+  role: "ADMIN" | "USER";
+}
+
 interface AuthState {
   token: string | null;
-  user: any | null;
+  user: User | null;
+}
+
+export interface LoginResponse {
+  success: boolean;
+  token: string
 }
 
 const initialState: AuthState = {
@@ -11,7 +22,7 @@ const initialState: AuthState = {
   user: null,
 };
 
-export const login = createAsyncThunk(
+export const login = createAsyncThunk<LoginResponse, { email: string; password: string }>(
   "auth/login",
   async (data: { email: string; password: string }) => {
     const res = await apiClient.post("/auth/login", data);
@@ -19,11 +30,11 @@ export const login = createAsyncThunk(
   }
 );
 
-export const fetchMe = createAsyncThunk(
+export const fetchMe = createAsyncThunk<User>(
   "auth/me",
   async () => {
     const res = await apiClient.get("/auth/me");
-    return res.data.data;
+    return res.data.user;
   }
 );
 

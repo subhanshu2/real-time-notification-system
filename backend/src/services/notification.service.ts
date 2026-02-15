@@ -64,7 +64,7 @@ export const createNotification = async (
         userId,
       },
     });
-    emitWithRetry(userId, { message });
+    emitWithRetry(userId, notification);
 
     return notification;
   }
@@ -85,12 +85,24 @@ export const createNotification = async (
     })),
   });
 
-  users.forEach((user) => {
-    const room = io.sockets.adapter.rooms.get(user.id);
+  const notifications = await prisma.notification.findMany({
+    where: {
+      message,
+      userId: {
+        in: users.map((u) => u.id),
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: users.length,
+  });
 
-    // Retry only if user is connected
+  notifications.forEach((notification) => {
+    const room = io.sockets.adapter.rooms.get(notification.userId);
+
     if (room && room.size > 0) {
-      emitWithRetry(user.id, { message });
+      emitWithRetry(notification.userId, notification);
     }
   });
 
