@@ -1,15 +1,23 @@
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import { verifyToken } from "../utils/jwt.js";
 
+interface AuthenticatedSocket extends Socket {
+  data: {
+    user: {
+      id: string;
+      role: string;
+    };
+  };
+}
+
 export const initializeSocket = (io: Server) => {
-  io.on("connection", (socket) => {
+  io.use((socket, next) => {
     const token =
       socket.handshake.auth?.token ||
       socket.handshake.query?.token;
-    
+
     if (!token) {
-      socket.disconnect();
-      return;
+      return next(new Error("Authentication error"));
     }
 
     try {
@@ -18,17 +26,22 @@ export const initializeSocket = (io: Server) => {
         role: string;
       };
 
-
-      socket.join(decoded.id);
-
-      console.log("User connected:", decoded.id);
+      socket.data.user = decoded; // attach user
+      next();
     } catch (err) {
-      console.log("JWT verification failed:", err);
-      socket.disconnect();
+      next(new Error("Authentication error"));
     }
+  });
+
+  io.on("connection", (socket: AuthenticatedSocket) => {
+    const { id, role } = socket.data.user;
+
+    socket.join(id);
+
+    console.log("Authenticated user connected:", id);
 
     socket.on("disconnect", () => {
-      console.log("User disconnected:", socket.id);
+      console.log("User disconnected:", id);
     });
   });
 };

@@ -53,17 +53,27 @@ const notificationSlice = createSlice({
   initialState,
   reducers: {
     addNotification: (state, action) => {
-      state.items.unshift(action.payload);
-      state.unreadCount += 1;
+      const exists = state.items.some(
+        (n) => n.id === action.payload.id
+      );
+
+      if (!exists) {
+        state.items.unshift(action.payload);
+        state.unreadCount += 1;
+      }
     },
   },
   extraReducers: (builder) => {
     builder.addCase(fetchNotifications.fulfilled, (state, action) => {
-      state.items.push(...action.payload.notifications);
+      if (action.meta.arg === 1) {
+        state.items = action.payload.notifications;
+      } else {
+        state.items.push(...action.payload.notifications);
+      }
+
       state.unreadCount = action.payload.unreadCount;
-      state.hasMore =
-        state.items.length < action.payload.total;
-      state.page += 1;
+      state.hasMore = state.items.length < action.payload.total;
+      state.page = action.meta.arg + 1;
     });
 
     builder.addCase(markAsRead.fulfilled, (state, action) => {

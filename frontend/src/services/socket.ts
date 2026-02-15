@@ -1,11 +1,16 @@
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 import { store } from "../app/store";
 import { addNotification } from "../features/notifications/notificationSlice";
 import toast from "react-hot-toast";
 
-let socket: any;
+let socket: Socket | null = null;
 
 export const connectSocket = () => {
+  if (socket) {
+    console.log("Socket already exists");
+    return;
+  }
+
   const token = localStorage.getItem("token");
 
   socket = io(import.meta.env.VITE_SOCKET_URL, {
@@ -16,7 +21,7 @@ export const connectSocket = () => {
   });
 
   socket.on("connect", () => {
-    console.log("Socket connected:", socket.id);
+    console.log("Socket connected:", socket?.id);
   });
 
   socket.on("notification", (data: any, ack: Function) => {
@@ -40,5 +45,9 @@ export const connectSocket = () => {
 };
 
 export const disconnectSocket = () => {
-  if (socket) socket.disconnect();
+  if (socket) {
+    socket.removeAllListeners();
+    socket.disconnect();
+    socket = null;
+  }
 };
