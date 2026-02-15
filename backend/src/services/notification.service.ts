@@ -3,21 +3,50 @@ import { AppError } from "../utils/appError.js";
 import { io } from "../server.js";
 
 
-const emitWithRetry = (
+const emitWithRetry = async (
   userId: string,
   payload: any,
-  retries = 3
-) => {
-  io.to(userId)
-    .timeout(5000)
-    .emit("notification", payload, (err: any) => {
-      if (err && retries > 0) {
-        console.log(`Retrying for ${userId}...`);
-        setTimeout(() => {
-          emitWithRetry(userId, payload, retries - 1);
-        }, 2000);
-      }
+  maxRetries = 3
+): Promise<void> => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const delivered = await new Promise<boolean>((resolve) => {
+      io.to(userId)
+        .timeout(5000)
+        .emit(
+          "notification",
+          payload,
+          (err: Error | null, response: any) => {
+            if (err) return resolve(false);
+            const ackData = Array.isArray(response)
+              ? response[0]
+              : response;
+
+            if (ackData?.status === "received") {
+              return resolve(true);
+            }
+
+            resolve(false);
+          }
+        );
     });
+
+    if (delivered) {
+      console.log(
+        `Notification delivered to ${userId} on attempt ${attempt}`
+      );
+      return;
+    }
+
+    console.warn(
+      `Attempt ${attempt} failed for ${userId}. Retrying...`
+    );
+
+    await new Promise((res) => setTimeout(res, 2000));
+  }
+
+  console.error(
+    `Failed to deliver notification to ${userId} after ${maxRetries} attempts`
+  );
 };
 
 export const createNotification = async (
