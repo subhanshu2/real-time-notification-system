@@ -62,7 +62,22 @@ Backend will run on `http://localhost:<PORT>`
 
 Frontend will run on `http://localhost:5173`
 
+## Authentication
+
+- Register: /register  
+- Login: /login  
+- Dashboard (Protected): /  
+
+Users can register with:
+- Name
+- Email
+- Password
+- Confirm Password
+
+After successful registration, users are redirected to the login page.
+
 ## Features
+- User registration
 - JWT-based authentication
 - Role-based access (Admin can broadcast notifications)
 - Real-time notifications using Socket.io
@@ -72,3 +87,12 @@ Frontend will run on `http://localhost:5173`
 - Infinite scroll
 - Mark as read
 - Delete notification
+
+## How It Works
+
+1. Register a new user via /register.
+2. Login using Admin credentials in one browser window.
+3. Open an incognito window and login as a normal user.
+4. From the Admin dashboard, create a new notification.
+5. The normal user will receive the notification instantly in the notification bell via real-time WebSocket connection.
+6. The notification is also stored in the database and can be marked as read or deleted.

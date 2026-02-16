@@ -30,6 +30,24 @@ export const login = createAsyncThunk<LoginResponse, { email: string; password: 
   }
 );
 
+export const register = createAsyncThunk<
+  { success: boolean },
+  { name: string; email: string; password: string },
+  { rejectValue: string }
+>(
+  "auth/register",
+  async (data, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.post("/auth/register", data);
+      return res.data;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Registration failed"
+      );
+    }
+  }
+);
+
 export const fetchMe = createAsyncThunk<User>(
   "auth/me",
   async () => {

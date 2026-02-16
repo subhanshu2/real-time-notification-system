@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { login } from "../features/auth/authSlice";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAppDispatch } from "../app/hook";
 
 export default function Login() {
@@ -42,6 +42,9 @@ export default function Login() {
         <br />
         <button type="submit">Login</button>
       </form>
+      <p>
+        Don't have an account? <Link to="/register">Register</Link>
+      </p>
     </div>
   );
 }
